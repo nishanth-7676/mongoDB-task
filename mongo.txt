@@ -1,0 +1,112 @@
+Insert Users
+
+db.users.insertMany([
+    { "_id": ObjectId("1"), "name": "Alice", "email": "alice@example.com", "tasksSubmitted": false, "attendanceDates": ["2020-10-15"] },
+    { "_id": ObjectId("2"), "name": "Bob", "email": "bob@example.com", "tasksSubmitted": true, "attendanceDates": ["2020-10-16"] },
+    { "_id": ObjectId("3"), "name": "Charlie", "email": "charlie@example.com", "tasksSubmitted": false, "attendanceDates": [] },
+    { "_id": ObjectId("4"), "name": "David", "email": "david@example.com", "tasksSubmitted": true, "attendanceDates": ["2020-10-18"] },
+    { "_id": ObjectId("5"), "name": "Eve", "email": "eve@example.com", "tasksSubmitted": true, "attendanceDates": ["2020-10-20"] }
+]);
+
+
+Insert Codekata Records
+
+db.codekata.insertMany([
+    { "userId": ObjectId("1"), "problemsSolvedCount": 20 },
+    { "userId": ObjectId("2"), "problemsSolvedCount": 30 },
+    { "userId": ObjectId("3"), "problemsSolvedCount": 15 },
+    { "userId": ObjectId("4"), "problemsSolvedCount": 40 },
+    { "userId": ObjectId("5"), "problemsSolvedCount": 10 }
+]);
+
+
+Insert Attendance Records
+
+db.attendance.insertMany([
+    { "userId": ObjectId("1"), "date": ISODate("2020-10-15"), "status": "present" },
+    { "userId": ObjectId("2"), "date": ISODate("2020-10-16"), "status": "present" },
+    { "userId": ObjectId("3"), "date": ISODate("2020-10-17"), "status": "absent" },
+    { "userId": ObjectId("4"), "date": ISODate("2020-10-18"), "status": "present" },
+    { "userId": ObjectId("5"), "date": ISODate("2020-10-19"), "status": "absent" }
+]);
+
+
+Insert Topics
+
+db.topics.insertMany([
+    { "_id": ObjectId("1"), "topicName": "JavaScript Basics", "dateTaught": ISODate("2023-10-05") },
+    { "_id": ObjectId("2"), "topicName": "Node.js", "dateTaught": ISODate("2023-10-15") },
+    { "_id": ObjectId("3"), "topicName": "MongoDB", "dateTaught": ISODate("2023-10-10") }
+]);
+
+
+Insert Tasks
+
+db.tasks.insertMany([
+    { "_id": ObjectId("1"), "taskName": "Build a Calculator", "dateAssigned": ISODate("2023-10-05"), "status": "submitted", "userId": ObjectId("1") },
+    { "_id": ObjectId("2"), "taskName": "Create API", "dateAssigned": ISODate("2023-10-15"), "status": "not submitted", "userId": ObjectId("3") },
+    { "_id": ObjectId("3"), "taskName": "Database Schema Design", "dateAssigned": ISODate("2023-10-10"), "status": "submitted", "userId": ObjectId("4") }
+]);
+
+
+Insert Company Drives
+
+db.company_drives.insertMany([
+    { "_id": ObjectId("1"), "driveName": "Google Placement", "date": ISODate("2020-10-20"), "attendees": [ObjectId("1"), ObjectId("2")] },
+    { "_id": ObjectId("2"), "driveName": "Amazon Placement", "date": ISODate("2020-10-25"), "attendees": [ObjectId("2"), ObjectId("3")] },
+    { "_id": ObjectId("3"), "driveName": "Microsoft Placement", "date": ISODate("2020-10-18"), "attendees": [ObjectId("4"), ObjectId("5")] }
+]);
+
+
+Insert Mentors
+
+db.mentors.insertMany([
+    { "_id": ObjectId("1"), "mentorName": "John Doe", "menteeCount": 18 },
+    { "_id": ObjectId("2"), "mentorName": "Jane Smith", "menteeCount": 12 },
+    { "_id": ObjectId("3"), "mentorName": "Sarah Lee", "menteeCount": 20 }
+]);
+
+
+.................OUTPUT...................
+
+Find all topics and tasks taught in October
+
+db.topics.find({ dateTaught: { $gte: ISODate("2023-10-01"), $lte: ISODate("2023-10-31") } });
+db.tasks.find({ dateAssigned: { $gte: ISODate("2023-10-01"), $lte: ISODate("2023-10-31") } });
+
+Find all company drives held between 15 Oct 2020 and 31 Oct 2020
+
+db.company_drives.find({ date: { $gte: ISODate("2020-10-15"), $lte: ISODate("2020-10-31") } });
+
+
+Find all company drives and students who attended
+
+db.company_drives.aggregate([
+    { $lookup: { from: "users", localField: "attendees", foreignField: "_id", as: "attendeeDetails" } }
+]);
+
+
+Find the number of problems solved by each user in Codekata
+
+db.codekata.aggregate([
+    { $lookup: { from: "users", localField: "userId", foreignField: "_id", as: "userDetails" } },
+    { $project: { "userDetails.name": 1, problemsSolvedCount: 1 } }
+]);
+
+
+Find mentors with more than 15 mentees
+
+db.mentors.find({ menteeCount: { $gt: 15 } });
+
+
+Find users who were absent and didn’t submit tasks between 15 Oct 2020 and 31 Oct 2020
+
+db.users.aggregate([
+    { $lookup: { from: "attendance", localField: "_id", foreignField: "userId", as: "attendanceRecords" } },
+    { $lookup: { from: "tasks", localField: "_id", foreignField: "userId", as: "tasksRecords" } },
+    { $match: { 
+        "attendanceRecords.status": "absent",
+        "tasksRecords.status": "not submitted",
+        "attendanceRecords.date": { $gte: ISODate("2020-10-15"), $lte: ISODate("2020-10-31") }
+    } }
+]);
